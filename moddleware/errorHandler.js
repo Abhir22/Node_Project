@@ -1,7 +1,6 @@
 const {constants} = require("../constant");
 //for handling error 
-//import { ErrorHandler } from 'express';
-const errorHandler = (err,req,res,nest) =>{
+const errorHandler = (err,req,res,next) =>{
     const statusCode = res.statusCode ? res.statusCode : 500;
     
     switch (statusCode) {

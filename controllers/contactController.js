@@ -1,31 +1,29 @@
-//import express async handler
+
 const asyncHandler = require("express-async-handler");
-//import the real database model which we are created
+
 const Contact = require("../models/contactModels");
 
-//We use async await in each of the route so that it can communicate with mongo server easily
-//and also to make sure all routes are executed one by one
-//For this we use async handler middleware fn 
+
 //@description get all contact
 //route get /api/contacts
-//access public
+//access private
 const getContacts = asyncHandler(async(req,res)=>{
-    const contacts=await Contact.find();
-
+    const contacts=await Contact.find({user_id: req.user.id});
+    console.log("123");
     res.status(200).json(contacts);
  }); 
-
+ 
 
 //@description create new contact
 //route post /api/contacts
-//access public
+//access private
 const createContact = asyncHandler(async (req,res)=>{
-    //for user to take input
+
     console.log("the request body is :", req.body);
 
-//for error handling so that user give input to those only require not any random thing 
-   const {name , email , phone} = req.body;
-   if(!name || !email || !phone){
+
+    const {name , email , phone} = req.body;
+    if(!name || !email || !phone){
     res.status(400);
     throw new Error('Please add all fields');
     }
@@ -33,12 +31,13 @@ const createContact = asyncHandler(async (req,res)=>{
         name,
         email,
         phone,
+        user_id: req.user.id,
     });
     res.status(201).json(contacts);
  });
 //@description get contact
 //route get /api/contacts:id
-//access public
+//access private
 const getContact = asyncHandler(async (req,res)=>{
     const contact = await Contact.findById(req.params.id);
     if(!contact) {
@@ -49,23 +48,28 @@ const getContact = asyncHandler(async (req,res)=>{
  });
 //@description update contact
 //route put /api/contacts:id
-//access public
+//access private
 const updateContact = asyncHandler(async (req,res)=>{
     const contact = await Contact.findById(req.params.id);
     if(!contact) {
         res.status(404);
         throw new Error('Contact not found');
     }
+    if(contact.user_id.toString() !==req.user.id){
+        res.status(403);
+        throw new Error('You are not authorized to perform this action');
+    }
     const updatedContact = await Contact.findByIdAndUpdate(
         req.params.id,
-        req.body,
+        req.body, 
         {new: true},
     );
     res.status(200).json(updatedContact);
  });
+
 //@description delete contact
 //route delete /api/contacts:id
-//access public
+//access private
 const deleteContact = asyncHandler(async (req,res)=>{
     try {
         const contact = await Contact.findOneAndDelete({ _id: req.params.id }).exec();
@@ -73,6 +77,10 @@ const deleteContact = asyncHandler(async (req,res)=>{
             console.log(27);
             res.status(404).json({ error: 'Contact not found' });
             return; // Return to exit the function
+        }
+        if(contact.user_id.toString() !==req.user.id){
+            res.status(403);
+            throw new Error('You are not authorized to perform this action');
         }
         res.status(200).json(contact);
     } catch (err) {
